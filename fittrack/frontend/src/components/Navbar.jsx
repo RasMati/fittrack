@@ -15,7 +15,8 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container">
         <Link to="/" className="brand">
-          🏋️ FitTrack
+          <span className="brand-badge">🏋️</span>
+          <span>FitTrack</span>
         </Link>
 
         <div className="nav-links">
@@ -25,7 +26,7 @@ const Navbar = () => {
               <Link to="/exercises">Exercises</Link>
               <Link to="/workout">Workout</Link>
               <Link to="/history">History</Link>
-              <span style={{ color: "#d1d5db" }}>👤 {user?.username}</span>
+              <span className="user-chip">👤 {user?.username}</span>
               <button onClick={handleLogout} className="btn-logout">
                 Logout
               </button>
@@ -33,15 +34,7 @@ const Navbar = () => {
           ) : (
             <>
               <Link to="/login">Login</Link>
-              <Link
-                to="/register"
-                style={{
-                  background: "#3b82f6",
-                  padding: "0.25rem 1rem",
-                  borderRadius: "4px",
-                  color: "white",
-                }}
-              >
+              <Link to="/register" className="btn btn-primary">
                 Register
               </Link>
             </>

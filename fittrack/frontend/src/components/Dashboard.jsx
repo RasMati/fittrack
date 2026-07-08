@@ -5,6 +5,23 @@ const Dashboard = ({ stats = {} }) => {
 
   return (
     <div>
+      <div className="card hero-panel">
+        <div>
+          <p
+            className="text-muted"
+            style={{ marginBottom: "0.35rem", color: "rgba(255,255,255,0.8)" }}
+          >
+            Today’s momentum
+          </p>
+          <h2>Welcome back to your fitness journey.</h2>
+          <p>
+            Track progress, stay consistent, and keep every session moving
+            forward.
+          </p>
+        </div>
+        <div className="hero-pill">🔥 Consistency beats intensity</div>
+      </div>
+
       <div className="grid grid-cols-3 mb-4">
         <div className="stat-card">
           <div className="stat-icon">💪</div>
@@ -24,9 +41,11 @@ const Dashboard = ({ stats = {} }) => {
       </div>
 
       <div className="card">
-        <h2>Recent Workouts</h2>
+        <h2 style={{ marginBottom: "0.75rem" }}>Recent Workouts</h2>
         {recent_workouts.length === 0 ? (
-          <p className="text-muted">No recent workouts</p>
+          <p className="text-muted">
+            No recent workouts yet. Start one and it will show up here.
+          </p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0 }}>
             {recent_workouts.map((s) => (
