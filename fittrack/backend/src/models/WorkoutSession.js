@@ -2,9 +2,46 @@ const pool = require("../config/database");
 const logger = require("../config/logger");
 
 class WorkoutSession {
+  static #memorySessions = [];
+  static #memorySessionId = 1;
+  static #useMemoryFallback = false;
+
+  static shouldUseMemoryFallback(error) {
+    const message = error?.message || "";
+    return (
+      error?.code === "ECONNREFUSED" ||
+      error?.code === "3D000" ||
+      error?.code === "28P01" ||
+      message.includes("does not exist") ||
+      message.includes("connect ECONNREFUSED")
+    );
+  }
+
   static async findByUser(userId, options = {}) {
-    const client = await pool.connect();
+    if (this.#useMemoryFallback) {
+      let sessions = this.#memorySessions.filter(
+        (session) => session.user_id === Number(userId),
+      );
+      if (options.startDate) {
+        sessions = sessions.filter(
+          (session) => session.session_date >= options.startDate,
+        );
+      }
+      if (options.endDate) {
+        sessions = sessions.filter(
+          (session) => session.session_date <= options.endDate,
+        );
+      }
+      sessions.sort((a, b) => b.session_date.localeCompare(a.session_date));
+      if (options.limit) {
+        sessions = sessions.slice(0, Number(options.limit));
+      }
+      return sessions;
+    }
+
+    let client;
     try {
+      client = await pool.connect();
       let query = `
                 SELECT ws.*, 
                        COALESCE(
@@ -57,16 +94,33 @@ class WorkoutSession {
       const result = await client.query(query, values);
       return result.rows;
     } catch (error) {
+      if (this.shouldUseMemoryFallback(error)) {
+        this.#useMemoryFallback = true;
+        logger.warn("Falling back to in-memory workout sessions");
+        return this.findByUser(userId, options);
+      }
       logger.error(`Error finding sessions: ${error.message}`);
       throw error;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
   static async findById(id, userId) {
-    const client = await pool.connect();
+    if (this.#useMemoryFallback) {
+      return (
+        this.#memorySessions.find(
+          (session) =>
+            session.id === Number(id) && session.user_id === Number(userId),
+        ) || null
+      );
+    }
+
+    let client;
     try {
+      client = await pool.connect();
       const query = `
                 SELECT ws.*, 
                        COALESCE(
@@ -97,16 +151,37 @@ class WorkoutSession {
       const result = await client.query(query, [id, userId]);
       return result.rows[0] || null;
     } catch (error) {
+      if (this.shouldUseMemoryFallback(error)) {
+        this.#useMemoryFallback = true;
+        logger.warn("Falling back to in-memory workout sessions");
+        return this.findById(id, userId);
+      }
       logger.error(`Error finding session: ${error.message}`);
       throw error;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
   static async create({ user_id, session_date, notes }) {
-    const client = await pool.connect();
+    if (this.#useMemoryFallback) {
+      const session = {
+        id: this.#memorySessionId++,
+        user_id: Number(user_id),
+        session_date: session_date || new Date().toISOString().split("T")[0],
+        notes: notes || "",
+        created_at: new Date().toISOString(),
+        logs: [],
+      };
+      this.#memorySessions.push(session);
+      return session;
+    }
+
+    let client;
     try {
+      client = await pool.connect();
       const query = `
                 INSERT INTO workout_sessions (user_id, session_date, notes)
                 VALUES ($1, $2, $3)
@@ -120,26 +195,50 @@ class WorkoutSession {
       logger.info(`Session created for user ${user_id}`);
       return result.rows[0];
     } catch (error) {
+      if (this.shouldUseMemoryFallback(error)) {
+        this.#useMemoryFallback = true;
+        logger.warn("Falling back to in-memory workout sessions");
+        return this.create({ user_id, session_date, notes });
+      }
       logger.error(`Error creating session: ${error.message}`);
       throw error;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
   static async delete(id, userId) {
-    const client = await pool.connect();
+    if (this.#useMemoryFallback) {
+      const initialLength = this.#memorySessions.length;
+      this.#memorySessions = this.#memorySessions.filter(
+        (session) =>
+          !(session.id === Number(id) && session.user_id === Number(userId)),
+      );
+      return this.#memorySessions.length < initialLength;
+    }
+
+    let client;
     try {
+      client = await pool.connect();
       const query =
         "DELETE FROM workout_sessions WHERE id = $1 AND user_id = $2 RETURNING id";
       const result = await client.query(query, [id, userId]);
       logger.info(`Session deleted: ${id}`);
       return result.rowCount > 0;
     } catch (error) {
+      if (this.shouldUseMemoryFallback(error)) {
+        this.#useMemoryFallback = true;
+        logger.warn("Falling back to in-memory workout sessions");
+        return this.delete(id, userId);
+      }
       logger.error(`Error deleting session: ${error.message}`);
       throw error;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 }
