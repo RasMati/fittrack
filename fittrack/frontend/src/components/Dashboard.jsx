@@ -62,6 +62,23 @@ const Dashboard = ({ stats = {} }) => {
           </ul>
         )}
       </div>
+
+      <div className="card about-section">
+        <div className="about-content">
+          <div>
+            <h3>About FitTrack</h3>
+            <p className="text-muted">
+              FitTrack helps you build stronger habits by keeping workouts,
+              exercises, and progress all in one place.
+            </p>
+          </div>
+          <div className="about-highlights">
+            <span>⚡ Quick logging</span>
+            <span>📈 Progress tracking</span>
+            <span>💡 Daily motivation</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

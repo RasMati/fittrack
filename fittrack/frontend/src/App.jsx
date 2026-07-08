@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -68,6 +69,7 @@ function App() {
             />
           </Routes>
         </div>
+        <Footer />
         <ToastContainer position="top-right" autoClose={3000} />
       </AuthProvider>
     </BrowserRouter>
